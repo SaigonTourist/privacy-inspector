@@ -1,0 +1,43 @@
+{
+  "name": "privacy-extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "PLASMO_SRC_PATH=. plasmo dev",
+    "build": "PLASMO_SRC_PATH=. plasmo build",
+    "build:trackers": "tsx scripts/build-trackers-json.ts",
+    "upload:trackers": "tsx --env-file=.env scripts/upload-to-r2.ts"
+  },
+  "manifest": {
+    "name": "Privacy Inspector",
+    "description": "Detecta y expone, en lenguaje humano, los datos personales que recogen los sitios web visitados.",
+    "host_permissions": [
+      "<all_urls>"
+    ],
+    "permissions": [
+      "storage",
+      "tabs"
+    ],
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'; font-src 'self' data:;"
+    }
+  },
+  "devDependencies": {
+    "@ghostery/trackerdb": "^1.0.812",
+    "@types/chrome": "^0.1.42",
+    "@types/node": "^25.8.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "plasmo": "^0.90.5",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  }
+}
