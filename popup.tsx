@@ -80,7 +80,7 @@ export default function Popup() {
           className="anim-float-violet font-press-start text-white select-none"
           style={{ fontSize: 11, lineHeight: 1.4 }}
         >
-          PRIVACY INSPECTOR
+          GAZEBACK
         </h1>
         {hostname ? (
           <p className="text-xs mt-1" style={{ color: "#C4B5FD" }}>

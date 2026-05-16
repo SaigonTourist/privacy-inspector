@@ -9,7 +9,7 @@
     "upload:trackers": "tsx --env-file=.env scripts/upload-to-r2.ts"
   },
   "manifest": {
-    "name": "Privacy Inspector",
+    "name": "Gazeback",
     "description": "Detecta y expone, en lenguaje humano, los datos personales que recogen los sitios web visitados.",
     "host_permissions": [
       "<all_urls>"
