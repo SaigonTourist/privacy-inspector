@@ -2,6 +2,13 @@ import { lookupDomains, setTrackerDB } from "./src/utils/tracker-lookup"
 import type { DetectedTracker } from "./src/types/tracker"
 import { riskColor } from "./src/utils/risk-calculator"
 
+// @ts-ignore — Parcel url: import resolves to the hashed runtime path
+import iconOpenUrl   from "url:./assets/icon-open.png"
+// @ts-ignore
+import iconMidUrl    from "url:./assets/icon-mid.png"
+// @ts-ignore
+import iconClosedUrl from "url:./assets/icon-closed.png"
+
 // Set via PLASMO_PUBLIC_TRACKERS_URL in .env
 // Format: https://pub-xxx.r2.dev  (or custom domain connected to R2)
 // Leave empty to disable remote updates — bundled DB is always the fallback.
@@ -9,6 +16,62 @@ const TRACKERS_BASE: string = process.env.PLASMO_PUBLIC_TRACKERS_URL ?? ""
 
 const CACHE_NAME = "trackerdb-v1"
 const tabKey = (tabId: number) => `trackers_${tabId}`
+
+// ─── Icon blink animation ─────────────────────────────────────────────────────
+
+type SizedImageData = Record<number, ImageData>
+type IconFrames = { open: SizedImageData; mid: SizedImageData; closed: SizedImageData }
+
+let iconFrames: IconFrames | null = null
+let blinkHandle: ReturnType<typeof setTimeout> | null = null
+
+async function loadSizedFrame(url: string): Promise<SizedImageData> {
+  const blob = await fetch(url).then((r) => r.blob())
+  const bmp  = await createImageBitmap(blob)
+  const out: SizedImageData = {}
+  for (const size of [16, 32, 48, 128]) {
+    const canvas = new OffscreenCanvas(size, size)
+    const ctx    = canvas.getContext("2d")!
+    ctx.drawImage(bmp, 0, 0, size, size)
+    out[size] = ctx.getImageData(0, 0, size, size)
+  }
+  bmp.close()
+  return out
+}
+
+async function ensureFrames(): Promise<IconFrames | null> {
+  if (iconFrames) return iconFrames
+  try {
+    const [open, mid, closed] = await Promise.all([
+      loadSizedFrame(iconOpenUrl as string),
+      loadSizedFrame(iconMidUrl as string),
+      loadSizedFrame(iconClosedUrl as string),
+    ])
+    iconFrames = { open, mid, closed }
+  } catch {
+    // Frame load failed — animation simply won't run
+  }
+  return iconFrames
+}
+
+async function startBlinkLoop() {
+  const f = await ensureFrames()
+  if (!f) return
+
+  function step(frame: SizedImageData, nextFn: () => void, delay: number) {
+    chrome.action.setIcon({ imageData: frame })
+    if (blinkHandle) clearTimeout(blinkHandle)
+    blinkHandle = setTimeout(nextFn, delay)
+  }
+
+  // open → mid → closed → mid → open → (repeat)
+  function doOpen()  { step(f.open,   doMid1,  3200) }
+  function doMid1()  { step(f.mid,    doClose,   60) }
+  function doClose() { step(f.closed, doMid2,   110) }
+  function doMid2()  { step(f.mid,    doOpen,    60) }
+
+  doOpen()
+}
 
 // ─── Startup ──────────────────────────────────────────────────────────────────
 
@@ -18,6 +81,7 @@ chrome.runtime.onStartup.addListener(() => initDB())
 async function initDB() {
   await loadCachedDB()  // fast: restore R2 download from Cache API
   checkForUpdates()     // async: compare remote version, download if newer
+  startBlinkLoop()
 }
 
 // ─── R2 update logic ──────────────────────────────────────────────────────────
