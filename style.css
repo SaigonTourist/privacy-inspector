@@ -18,42 +18,26 @@
 
 /* ── Retro 16-bit animations ─────────────────────────────────────────────── */
 
-@keyframes float-violet {
-  0% {
-    transform: perspective(300px) translateY(0px) rotateX(0deg) rotateZ(0deg);
-    text-shadow:
-      2px 2px 0 #7C3AED,
-      4px 4px 0 #6D28D9,
-      6px 6px 0 #4C1D95;
-  }
-  25% {
-    transform: perspective(300px) translateY(-5px) rotateX(10deg) rotateZ(2deg);
-    text-shadow:
-      1px 8px 0 #7C3AED,
-      2px 11px 0 #6D28D9,
-      3px 14px 0 #4C1D95;
-  }
-  50% {
-    transform: perspective(300px) translateY(-7px) rotateX(0deg) rotateZ(-1.5deg);
-    text-shadow:
-      2px 10px 0 #7C3AED,
-      4px 13px 0 #6D28D9,
-      6px 16px 0 #4C1D95;
-  }
-  75% {
-    transform: perspective(300px) translateY(-4px) rotateX(-8deg) rotateZ(1deg);
-    text-shadow:
-      3px 7px 0 #7C3AED,
-      5px 10px 0 #6D28D9,
-      7px 13px 0 #4C1D95;
-  }
-  100% {
-    transform: perspective(300px) translateY(0px) rotateX(0deg) rotateZ(0deg);
-    text-shadow:
-      2px 2px 0 #7C3AED,
-      4px 4px 0 #6D28D9,
-      6px 6px 0 #4C1D95;
-  }
+/* Each axis animated independently so they never pause in sync */
+@property --fty { syntax: '<length>';     initial-value: 0px;  inherits: false; }
+@property --frx { syntax: '<angle>';      initial-value: 0deg; inherits: false; }
+@property --frz { syntax: '<angle>';      initial-value: 0deg; inherits: false; }
+
+@keyframes float-ty {
+  0%, 100% { --fty: 0px;  }
+  50%       { --fty: -8px; }
+}
+@keyframes float-rx {
+  0%, 100% { --frx: 0deg;   }
+  50%       { --frx: 10deg;  }
+}
+@keyframes float-rz {
+  0%, 100% { --frz: 0deg;  }
+  50%       { --frz: 2deg;  }
+}
+@keyframes float-shadow {
+  0%, 100% { text-shadow: 2px 2px  0 #7C3AED, 4px 4px  0 #6D28D9, 6px 6px  0 #4C1D95; }
+  50%       { text-shadow: 2px 10px 0 #7C3AED, 4px 13px 0 #6D28D9, 6px 16px 0 #4C1D95; }
 }
 
 @keyframes float-subtle {
@@ -78,7 +62,14 @@
 
 /* ── Utility classes ─────────────────────────────────────────────────────── */
 
-.anim-float-violet { animation: float-violet 3s ease-in-out infinite; }
+.anim-float-violet {
+  transform: perspective(400px) translateY(var(--fty)) rotateX(var(--frx)) rotateZ(var(--frz));
+  animation:
+    float-ty     3.4s ease-in-out infinite,
+    float-rx     2.7s ease-in-out infinite 0.5s,
+    float-rz     4.3s ease-in-out infinite 1.2s,
+    float-shadow 3.4s ease-in-out infinite;
+}
 .anim-float        { animation: float-subtle 2.5s ease-in-out infinite; }
 .anim-blink        { animation: blink 1s step-end infinite; }
 .anim-slide-in     { animation: slide-in 0.2s ease-out; }
