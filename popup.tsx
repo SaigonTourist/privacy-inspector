@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react"
 import "./style.css"
-// @ts-ignore — Parcel url: import gives the hashed runtime URL of the bundled font
-import pressStart2pUrl from "url:./assets/fonts/PressStart2P.woff2"
+// @ts-ignore — Parcel url: import resolves to the hashed runtime path of the bundled font
+import pressStart2pUrl from "url:./assets/fonts/PressStart2P-Regular.ttf"
+
+// Load font at module level — before React renders — so it's ready on first paint
+const _fontFace = new FontFace("Press Start 2P", `url(${pressStart2pUrl as string}) format("truetype")`)
+_fontFace.load().then((f) => document.fonts.add(f)).catch(() => {})
 
 import type { DetectedTracker } from "./src/types/tracker"
 import type { AnalysisResponse } from "./src/utils/ai-client"
@@ -32,12 +36,6 @@ export default function Popup() {
   const [loading, setLoading]   = useState(true)
   const [hostname, setHostname] = useState("")
   const [analysis, setAnalysis] = useState<AnalysisState>({ status: "idle" })
-
-  useEffect(() => {
-    const style = document.createElement("style")
-    style.textContent = `@font-face { font-family: 'Press Start 2P'; src: url('${pressStart2pUrl}') format('woff2'); font-display: block; }`
-    document.head.appendChild(style)
-  }, [])
 
   useEffect(() => {
     async function load() {
