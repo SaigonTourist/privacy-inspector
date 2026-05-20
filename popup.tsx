@@ -176,6 +176,24 @@ export default function Popup() {
           </div>
         </>
       )}
+
+      {/* ── Footer ── */}
+      <div
+        className="flex justify-center px-4 py-2"
+        style={{ borderTop: "1px solid #DDD6FE" }}
+      >
+        <a
+          href="https://saigontourist.github.io/privacy-inspector/privacy-policy.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs uppercase tracking-widest"
+          style={{ color: "#9333EA", textDecoration: "none" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#7C3AED")}
+          onMouseLeave={e => (e.currentTarget.style.color = "#9333EA")}
+        >
+          › Privacy Policy
+        </a>
+      </div>
     </div>
   )
 }

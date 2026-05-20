@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "PLASMO_SRC_PATH=. plasmo dev",
-    "build": "PLASMO_SRC_PATH=. plasmo build",
+    "build": "PLASMO_SRC_PATH=. plasmo build && node scripts/postbuild.mjs",
+    "build:zip": "PLASMO_SRC_PATH=. plasmo build --zip && node scripts/postbuild.mjs && cd build/chrome-mv3-prod && zip -r ../chrome-mv3-prod.zip .",
     "build:trackers": "tsx scripts/build-trackers-json.ts",
     "upload:trackers": "tsx --env-file=.env scripts/upload-to-r2.ts"
   },
