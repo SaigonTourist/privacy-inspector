@@ -183,7 +183,7 @@ export default function Popup() {
         style={{ borderTop: "1px solid #DDD6FE" }}
       >
         <a
-          href="https://saigontourist.github.io/privacy-inspector/privacy-policy.html"
+          href="https://saigontourist.github.io/gazeback---privacy-policy/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs uppercase tracking-widest"
