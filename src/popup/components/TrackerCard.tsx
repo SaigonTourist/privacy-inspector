@@ -32,9 +32,9 @@ export function TrackerCard({ tracker }: Props) {
         style={{ background: expanded ? "#EDE9FE" : undefined }}
       >
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span
-              className="font-bold text-xs uppercase tracking-wide"
+              className="font-bold text-xs uppercase tracking-wide shrink-0"
               style={{ color: "#1A0533" }}
             >
               {expanded ? "▼" : "▶"}
@@ -46,12 +46,12 @@ export function TrackerCard({ tracker }: Props) {
               {tracker.company}
             </span>
           </div>
-          <div className="flex items-center gap-2 ml-4 mt-0.5">
-            <span className="text-xs" style={{ color: "#6D28D9" }}>
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 ml-4 mt-0.5">
+            <span className="text-xs truncate" style={{ color: "#6D28D9", maxWidth: 200 }}>
               {tracker.domain}
             </span>
             <span
-              className="text-xs font-bold uppercase px-1"
+              className="text-xs font-bold uppercase px-1 shrink-0"
               style={{
                 color: "#F0EBF8",
                 background: catColor,
@@ -62,7 +62,9 @@ export function TrackerCard({ tracker }: Props) {
             </span>
           </div>
         </div>
-        <RiskBadge score={tracker.risk} compact />
+        <div className="shrink-0">
+          <RiskBadge score={tracker.risk} compact />
+        </div>
       </div>
 
       {/* Expanded detail */}
@@ -89,10 +91,10 @@ export function TrackerCard({ tracker }: Props) {
             </ul>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-1.5 pt-1" style={{ maxWidth: "100%" }}>
             <span
               className="text-xs px-1.5 py-0.5 font-bold uppercase"
-              style={{ background: "#fff", border: "1px solid #7C3AED", color: "#7C3AED", fontSize: 9 }}
+              style={{ background: "#fff", border: "1px solid #7C3AED", color: "#7C3AED", fontSize: 9, wordBreak: "break-word" }}
             >
               {tracker.legal_basis}
             </span>

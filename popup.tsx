@@ -72,8 +72,8 @@ export default function Popup() {
 
   return (
     <div
-      className="w-96 flex flex-col font-mono"
-      style={{ minWidth: 384, background: "#F0EBF8", color: "#1A0533" }}
+      className="flex flex-col font-mono"
+      style={{ width: 480, minWidth: 480, background: "#F0EBF8", color: "#1A0533", overflowX: "hidden" }}
     >
       {/* ── Header ── */}
       <div
@@ -120,91 +120,90 @@ export default function Popup() {
         </div>
       )}
 
-      {/* ── Body ── */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12 gap-2 text-xs uppercase tracking-widest" style={{ color: "#7C3AED" }}>
-          <span>SCANNING</span>
-          <span className="anim-blink">█</span>
-        </div>
-
-      ) : trackers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-3">
-          <div
-            className="anim-float pixel-box-sm text-lg font-bold px-4 py-2"
-            style={{ background: "#fff", color: "#10B981" }}
-          >
-            ✓ CLEAN
+      {/* ── Body (scrollable) ── */}
+      <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+        {loading ? (
+          <div className="flex items-center justify-center py-12 gap-2 text-xs uppercase tracking-widest" style={{ color: "#7C3AED" }}>
+            <span>SCANNING</span>
+            <span className="anim-blink">█</span>
           </div>
-          <p className="text-xs uppercase tracking-wider" style={{ color: "#4C1D95" }}>
-            No trackers detected
-          </p>
-          <p className="text-xs" style={{ color: "#9333EA" }}>
-            This page appears tracker-free
-          </p>
-        </div>
 
-      ) : activeTab === "feed" ? (
-        <LiveFeed tabId={tabId} />
-
-      ) : analysis.status === "done" ? (
-        <AnalysisPanel
-          site={hostname}
-          analysis={analysis.data}
-          onClose={() => setAnalysis({ status: "idle" })}
-        />
-
-      ) : (
-        <>
-          {/* Risk gauge */}
-          <div className="px-4 py-3" style={{ borderBottom: "2px solid #DDD6FE" }}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs uppercase tracking-widest" style={{ color: "#6D28D9" }}>
-                Risk Level
-              </span>
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: rc }}>
-                {RISK_LABEL[tier]} [{pageRisk}]
-              </span>
-            </div>
-            {/* Pixel HP bar */}
+        ) : trackers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-3">
             <div
-              className="h-3 flex gap-0.5 p-0.5"
-              style={{ background: "#1A0533", border: "2px solid #1A0533" }}
+              className="anim-float pixel-box-sm text-lg font-bold px-4 py-2"
+              style={{ background: "#fff", color: "#10B981" }}
             >
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-1 h-full"
-                  style={{ background: i < Math.round(pageRisk / 5) ? rc : "#3B1F6A" }}
-                />
-              ))}
+              ✓ CLEAN
             </div>
-
-            {/* Tracker count badge */}
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs" style={{ color: "#7C3AED" }}>
-                ▓▓ {trackers.length} TRACKER{trackers.length !== 1 ? "S" : ""} FOUND ▓▓
-              </span>
-            </div>
+            <p className="text-xs uppercase tracking-wider" style={{ color: "#4C1D95" }}>
+              No trackers detected
+            </p>
+            <p className="text-xs" style={{ color: "#9333EA" }}>
+              This page appears tracker-free
+            </p>
           </div>
 
-          {/* Tracker list */}
-          <div className="overflow-y-auto" style={{ maxHeight: 300 }}>
+        ) : activeTab === "feed" ? (
+          <LiveFeed tabId={tabId} />
+
+        ) : analysis.status === "done" ? (
+          <AnalysisPanel
+            site={hostname}
+            analysis={analysis.data}
+            onClose={() => setAnalysis({ status: "idle" })}
+          />
+
+        ) : (
+          <>
+            {/* Risk gauge */}
+            <div className="px-4 py-3" style={{ borderBottom: "2px solid #DDD6FE" }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs uppercase tracking-widest" style={{ color: "#6D28D9" }}>
+                  Risk Level
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: rc }}>
+                  {RISK_LABEL[tier]} [{pageRisk}]
+                </span>
+              </div>
+              <div
+                className="h-3 flex gap-0.5 p-0.5"
+                style={{ background: "#1A0533", border: "2px solid #1A0533" }}
+              >
+                {Array.from({ length: 20 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 h-full"
+                    style={{ background: i < Math.round(pageRisk / 5) ? rc : "#3B1F6A" }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs" style={{ color: "#7C3AED" }}>
+                  ▓▓ {trackers.length} TRACKER{trackers.length !== 1 ? "S" : ""} FOUND ▓▓
+                </span>
+              </div>
+            </div>
+
+            {/* Tracker list — sin maxHeight propio, el body scrollea */}
             <TrackerList trackers={trackers} />
-          </div>
+          </>
+        )}
+      </div>
 
-          {/* CTA */}
-          <div className="px-4 py-3" style={{ borderTop: "2px solid #DDD6FE" }}>
-            {analysis.status === "error" && (
-              <p className="text-xs mb-2 uppercase tracking-wide" style={{ color: "#EF4444" }}>
-                ✗ {analysis.message}
-              </p>
-            )}
-            <AnalyzeButton
-              loading={analysis.status === "loading"}
-              onClick={handleAnalyze}
-            />
-          </div>
-        </>
+      {/* ── CTA pinned — visible siempre, fuera del scroll ── */}
+      {!loading && trackers.length > 0 && analysis.status !== "done" && (
+        <div className="px-4 py-3" style={{ borderTop: "2px solid #DDD6FE" }}>
+          {analysis.status === "error" && (
+            <p className="text-xs mb-2 uppercase tracking-wide" style={{ color: "#EF4444" }}>
+              ✗ {analysis.message}
+            </p>
+          )}
+          <AnalyzeButton
+            loading={analysis.status === "loading"}
+            onClick={handleAnalyze}
+          />
+        </div>
       )}
 
       {/* ── Footer ── */}

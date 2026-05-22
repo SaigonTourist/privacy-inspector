@@ -1,4 +1,5 @@
 import type { CapturedParam } from "../types/captured-request"
+import { tryDecodeProto } from "./proto-decoder"
 
 interface ParamMeta { label: string; meaning: string; sensitive: boolean }
 
@@ -36,6 +37,30 @@ const PARAM_DICT: Record<string, ParamMeta> = {
   li_fat_id: { label: "ID LinkedIn",          meaning: "Identificador de seguimiento de LinkedIn Ads",        sensitive: true  },
   // ── Twitter/X ────────────────────────────────────────────────────────────────
   twclid:    { label: "ID de clic Twitter",   meaning: "El tweet o anuncio de Twitter en que hiciste clic",   sensitive: true  },
+  // ── Google Publisher Tags (GPT) / Ad Manager ────────────────────────────────
+  gpt_m:      { label: "Módulo GPT",              meaning: "Versión del sistema de subastas de anuncios de Google",              sensitive: false },
+  gpt_sid:    { label: "Sesión de anuncios",       meaning: "ID de tu sesión en el sistema de publicidad de Google",              sensitive: true  },
+  gpt_uid:    { label: "ID de usuario publicitario", meaning: "Identificador que Google usa para perfilarte como audiencia",      sensitive: true  },
+  correlator: { label: "Correlador de subasta",    meaning: "Código que sincroniza todos los anuncios cargados en esta página",   sensitive: false },
+  iu:         { label: "Unidad de anuncio",        meaning: "El espacio publicitario específico que se está llenando",            sensitive: false },
+  sz:         { label: "Tamaño del anuncio",       meaning: "Las dimensiones en píxeles del banner que se va a mostrar",         sensitive: false },
+  tile:       { label: "Posición en página",       meaning: "En qué lugar de la página va ubicado el anuncio",                   sensitive: false },
+  adtest:     { label: "Modo de prueba",           meaning: "Si el anuncio es real o de prueba",                                 sensitive: false },
+  hl:         { label: "Idioma del anuncio",       meaning: "El idioma en que se sirven los anuncios",                           sensitive: false },
+  pvsid:      { label: "ID de vista de página",    meaning: "Identifica esta carga de página dentro del sistema de ads",         sensitive: true  },
+  prev_scp:   { label: "Targeting anterior",       meaning: "Parámetros de segmentación de la subasta de anuncios anterior",     sensitive: true  },
+  scp:        { label: "Parámetros de targeting",  meaning: "Datos usados para decidir qué anuncio mostrarte (intereses, segmento)", sensitive: true },
+  u_tz:       { label: "Zona horaria (ads)",       meaning: "Tu zona horaria, usada para mostrar anuncios localizados",          sensitive: false },
+  u_his:      { label: "Historial de navegación",  meaning: "Páginas del sitio que visitaste, usadas para retargeting",         sensitive: true  },
+  u_h:        { label: "Alto de pantalla (ads)",   meaning: "El alto de tu pantalla, parte del fingerprint publicitario",        sensitive: false },
+  u_w:        { label: "Ancho de pantalla (ads)",  meaning: "El ancho de tu pantalla, parte del fingerprint publicitario",       sensitive: false },
+  u_ah:       { label: "Alto útil de pantalla",    meaning: "Alto de pantalla descontando barras del sistema",                   sensitive: false },
+  u_aw:       { label: "Ancho útil de pantalla",   meaning: "Ancho de pantalla descontando barras del sistema",                  sensitive: false },
+  u_cd:       { label: "Profundidad de color (ads)", meaning: "Calidad de color de tu pantalla, parte del fingerprint",         sensitive: false },
+  u_sd:       { label: "Densidad de píxeles",      meaning: "Si usás pantalla Retina/HiDPI, revela el tipo de dispositivo",     sensitive: false },
+  dt:         { label: "Tiempo de carga",          meaning: "Cuánto tardó en cargar la página (comportamiento del usuario)",     sensitive: false },
+  biw:        { label: "Ancho de ventana",         meaning: "El ancho visible de tu navegador",                                  sensitive: false },
+  bih:        { label: "Alto de ventana",          meaning: "El alto visible de tu navegador",                                   sensitive: false },
   // ── Genéricos ────────────────────────────────────────────────────────────────
   ip:    { label: "Dirección IP",             meaning: "Tu dirección de red, revela tu ubicación aproximada", sensitive: true  },
   ua:    { label: "Navegador y sistema",      meaning: "Tu navegador, versión y sistema operativo",            sensitive: false },
@@ -73,11 +98,59 @@ function makeMeta(key: string): ParamMeta {
   )
 }
 
+// ── Value decoder ─────────────────────────────────────────────────────────────
+
+const BASE64_RE = /^[A-Za-z0-9+/]{8,}={0,2}$/
+
+function tryDecodeValue(raw: string): string | null {
+  // 0. Base64url / protobuf (Google RTB, encrypted ad signals, etc.)
+  const proto = tryDecodeProto(raw)
+  if (proto) return proto
+
+  // 1. Double URL-encoding (%257B → %7B → {…})
+  try {
+    const once = decodeURIComponent(raw)
+    if (once !== raw) {
+      try {
+        const twice = decodeURIComponent(once)
+        if (twice.startsWith("{") || twice.startsWith("[")) {
+          return JSON.stringify(JSON.parse(twice), null, 2)
+        }
+        return twice !== once ? twice : once
+      } catch { return once }
+    }
+  } catch { /* no es URL-encoded */ }
+
+  // 2. Base64 → JSON o texto plano
+  if (BASE64_RE.test(raw)) {
+    try {
+      const decoded = atob(raw)
+      try {
+        return JSON.stringify(JSON.parse(decoded), null, 2)
+      } catch {
+        // Solo devolver si el resultado es texto legible (ASCII imprimible)
+        if (/^[\x20-\x7E\n\t]*$/.test(decoded) && decoded.length > 2) return decoded
+      }
+    } catch { /* no es base64 válido */ }
+  }
+
+  // 3. JSON stringificado dentro del valor
+  if ((raw.startsWith("{") || raw.startsWith("[")) && raw.length > 10) {
+    try {
+      return JSON.stringify(JSON.parse(raw), null, 2)
+    } catch { /* no es JSON */ }
+  }
+
+  return null
+}
+
 function addParam(params: CapturedParam[], key: string, value: string) {
   if (isIgnorable(key, value)) return
   if (value.length > 500) value = value.slice(0, 497) + "…"
+
+  const decoded = tryDecodeValue(value) ?? undefined
   const meta = makeMeta(key)
-  params.push({ key, value, ...meta })
+  params.push({ key, value, decoded, ...meta })
 }
 
 function flattenJSON(obj: unknown, prefix: string, out: CapturedParam[]) {
