@@ -14,6 +14,10 @@ export function setTrackerDB(db: TrackerDB) {
   activeDB = db
 }
 
+export function lookupDomain(hostname: string): TrackerEntry | null {
+  return lookupHostname(hostname)
+}
+
 function lookupHostname(hostname: string): TrackerEntry | null {
   if (activeDB[hostname]) return activeDB[hostname]
 

@@ -1,4 +1,6 @@
-import { lookupDomains, setTrackerDB } from "./src/utils/tracker-lookup"
+import { lookupDomains, lookupDomain, setTrackerDB } from "./src/utils/tracker-lookup"
+import { parseRequest } from "./src/utils/request-parser"
+import type { CapturedRequest } from "./src/types/captured-request"
 import type { DetectedTracker } from "./src/types/tracker"
 import { riskColor } from "./src/utils/risk-calculator"
 
@@ -144,6 +146,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(() => sendResponse({ trackers: [] }))
     return true
   }
+
+  if (message.type === "GET_CAPTURES") {
+    sendResponse({ captures: tabCaptures.get(message.tabId) ?? [] })
+    return true
+  }
 })
 
 // ─── Detection logic ──────────────────────────────────────────────────────────
@@ -172,6 +179,39 @@ function updateBadge(tabId: number, trackers: DetectedTracker[]) {
   chrome.action.setBadgeText({ text: String(trackers.length), tabId })
   chrome.action.setBadgeBackgroundColor({ color: riskColor(maxRisk), tabId })
 }
+
+// ─── Live request interception ────────────────────────────────────────────────
+
+const MAX_CAPTURES = 40
+const tabCaptures = new Map<number, CapturedRequest[]>()
+
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    if (details.tabId < 0) return
+    try {
+      const hostname = new URL(details.url).hostname
+      const entry    = lookupDomain(hostname)
+      if (!entry) return
+
+      const params = parseRequest(details)
+      if (params.length === 0) return
+
+      const capture: CapturedRequest = {
+        id:        `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        timestamp: Date.now(),
+        domain:    hostname,
+        company:   entry.company,
+        method:    details.method,
+        params,
+      }
+
+      const existing = tabCaptures.get(details.tabId) ?? []
+      tabCaptures.set(details.tabId, [capture, ...existing].slice(0, MAX_CAPTURES))
+    } catch { /* URL inválida — ignorar */ }
+  },
+  { urls: ["<all_urls>"] },
+  ["requestBody"]
+)
 
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
 

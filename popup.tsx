@@ -13,6 +13,7 @@ import { analyzeTrackers } from "./src/utils/ai-client"
 import { TrackerList } from "./src/popup/components/TrackerList"
 import { AnalyzeButton } from "./src/popup/components/AnalyzeButton"
 import { AnalysisPanel } from "./src/popup/components/AnalysisPanel"
+import { LiveFeed } from "./src/popup/components/LiveFeed"
 import { calcPageRisk, riskColor } from "./src/utils/risk-calculator"
 
 type AnalysisState =
@@ -35,13 +36,16 @@ export default function Popup() {
   const [trackers, setTrackers] = useState<DetectedTracker[]>([])
   const [loading, setLoading]   = useState(true)
   const [hostname, setHostname] = useState("")
+  const [tabId, setTabId]       = useState<number>(0)
   const [analysis, setAnalysis] = useState<AnalysisState>({ status: "idle" })
+  const [activeTab, setActiveTab] = useState<"trackers" | "feed">("trackers")
 
   useEffect(() => {
     async function load() {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
         if (!tab?.id) { setLoading(false); return }
+        setTabId(tab.id)
         try { setHostname(new URL(tab.url ?? "").hostname) } catch { /**/ }
         const res = await chrome.runtime.sendMessage({ type: "GET_TRACKERS", tabId: tab.id })
         setTrackers(res?.trackers ?? [])
@@ -93,6 +97,29 @@ export default function Popup() {
         )}
       </div>
 
+      {/* ── Tabs ── */}
+      {!loading && analysis.status !== "done" && (
+        <div className="flex" style={{ borderBottom: "2px solid #DDD6FE", background: "#F5F3FF" }}>
+          {(["trackers", "feed"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="flex-1 py-2 text-xs uppercase tracking-widest font-bold transition-colors"
+              style={{
+                background:   activeTab === tab ? "#1A0533" : "transparent",
+                color:        activeTab === tab ? "#C4B5FD" : "#9333EA",
+                border:       "none",
+                borderBottom: activeTab === tab ? "2px solid #7C3AED" : "2px solid transparent",
+                cursor:       "pointer",
+                marginBottom: -2,
+              }}
+            >
+              {tab === "trackers" ? "▓ TRACKERS" : "● FEED"}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Body ── */}
       {loading ? (
         <div className="flex items-center justify-center py-12 gap-2 text-xs uppercase tracking-widest" style={{ color: "#7C3AED" }}>
@@ -115,6 +142,9 @@ export default function Popup() {
             This page appears tracker-free
           </p>
         </div>
+
+      ) : activeTab === "feed" ? (
+        <LiveFeed tabId={tabId} />
 
       ) : analysis.status === "done" ? (
         <AnalysisPanel
